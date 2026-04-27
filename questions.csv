@@ -1,31 +1,201 @@
 level,question,answer
 0.1,What is 2+2?,4
+0.1,What is 5+3?,8
 0.1,What is 9-4?,5
 0.1,What is 7+1?,8
+0.1,What is 3+6?,9
+0.1,What is 8-5?,3
+0.1,What is 4+4?,8
+0.1,What is 10-3?,7
+0.1,What is 1+9?,10
+0.1,What is 6+2?,8
+0.1,What is 5-2?,3
+0.1,What is 7-3?,4
+0.1,What is 2+8?,10
+0.1,What is 6+3?,9
+0.1,What is 9-2?,7
+0.1,What is 4+5?,9
+0.1,What is 8-6?,2
+0.1,What is 3+3?,6
+0.1,What is 10-4?,6
+0.1,What is 7+2?,9
 0.2,What is 12-5?,7
 0.2,What is 6+9?,15
 0.2,What is 3*4?,12
+0.2,What is 15+8?,23
+0.2,What is 20-7?,13
+0.2,What is 5*3?,15
+0.2,What is 18-9?,9
+0.2,What is 7+14?,21
+0.2,What is 4*5?,20
+0.2,What is 25-8?,17
+0.2,What is 6*3?,18
+0.2,What is 16+7?,23
+0.2,What is 30-12?,18
+0.2,What is 8+15?,23
+0.2,What is 2*9?,18
+0.2,What is 11+13?,24
+0.2,What is 40-17?,23
+0.2,What is 7*3?,21
+0.2,What is 50-28?,22
+0.2,What is 9+16?,25
 0.3,What is 15/3?,5
 0.3,What is 14+19?,33
 0.3,What is 18-7?,11
+0.3,What is 4*7?,28
+0.3,What is 36/6?,6
+0.3,What is 7*8?,56
+0.3,What is 45/9?,5
+0.3,What is 9*6?,54
+0.3,What is 24/4?,6
+0.3,What is 8*7?,56
+0.3,What is 48/8?,6
+0.3,What is 6*9?,54
+0.3,What is 35/7?,5
+0.3,What is 11*4?,44
+0.3,What is 63/9?,7
+0.3,What is 72/8?,9
+0.3,What is 5*11?,55
+0.3,What is 56/7?,8
+0.3,What is 9*8?,72
+0.3,What is 42/6?,7
 0.4,What is 12*12?,144
 0.4,What is 81/9?,9
 0.4,What is 25+37?,62
+0.4,What is 13*7?,91
+0.4,What is 144/12?,12
+0.4,What is 15*8?,120
+0.4,What is 169/13?,13
+0.4,What is 11*11?,121
+0.4,What is 256/16?,16
+0.4,What is 14*9?,126
+0.4,What is 225/15?,15
+0.4,What is 17*6?,102
+0.4,What is 196/14?,14
+0.4,What is 18*7?,126
+0.4,What is 13*13?,169
+0.4,What is 288/12?,24
+0.4,What is 19*5?,95
+0.4,What is 324/18?,18
+0.4,What is 16*14?,224
+0.4,What is 450/25?,18
 0.5,Solve for x: x + 7 = 15,8
 0.5,What is the square root of 169?,13
 0.5,If 4x = 36 then what is x?,9
+0.5,Solve: x - 5 = 12,17
+0.5,What is the square root of 144?,12
+0.5,If 3x = 21 then what is x?,7
+0.5,Solve: x + 10 = 25,15
+0.5,What is the square root of 225?,15
+0.5,If 5x = 45 then what is x?,9
+0.5,Solve: x - 8 = 7,15
+0.5,What is the square root of 100?,10
+0.5,If 6x = 48 then what is x?,8
+0.5,Solve: 2x = 14,7
+0.5,What is the square root of 64?,8
+0.5,If x/3 = 7 then what is x?,21
+0.5,Solve: x + 13 = 30,17
+0.5,What is the square root of 256?,16
+0.5,If 7x = 63 then what is x?,9
+0.5,Solve: x - 11 = 9,20
+0.5,What is the square root of 49?,7
 0.6,What is 2^5?,32
 0.6,If 3x = 27 then what is x?,9
 0.6,Solve: 2x + 5 = 17,6
+0.6,What is 3^4?,81
+0.6,Solve: 3x - 6 = 15,7
+0.6,What is 2^8?,256
+0.6,Solve: 4x + 3 = 19,4
+0.6,What is 5^3?,125
+0.6,Solve: 2x - 7 = 11,9
+0.6,What is 4^3?,64
+0.6,Solve: 5x + 2 = 22,4
+0.6,What is 2^6?,64
+0.6,Solve: 3x - 9 = 12,7
+0.6,What is 6^2?,36
+0.6,Solve: 7x - 5 = 30,5
+0.6,What is 2^7?,128
+0.6,Solve: 6x + 4 = 34,5
+0.6,What is 10^3?,1000
+0.6,Solve: 4x - 8 = 16,6
+0.6,What is 3^3?,27
 0.7,What is the derivative of x^2?,2x
-0.7,Integrate x dx,0.5x^2
-0.7,Derivative of x^3?,3x^2
+0.7,What is the derivative of x^3?,3x^2
+0.7,What is the derivative of x^4?,4x^3
+0.7,What is the derivative of x^5?,5x^4
+0.7,What is the derivative of 3x^2?,6x
+0.7,What is the derivative of 5x^3?,15x^2
+0.7,What is the derivative of 7x?,7
+0.7,What is the derivative of x+5?,1
+0.7,What is the derivative of 4x^3?,12x^2
+0.7,What is the derivative of x^6?,6x^5
+0.7,What is the derivative of 2x?,2
+0.7,What is the derivative of 6x^2?,12x
+0.7,What is the derivative of x^7?,7x^6
+0.7,What is the derivative of 9x^2?,18x
+0.7,What is the derivative of 10x?,10
+0.7,What is the derivative of 8x^3?,24x^2
+0.7,What is the derivative of x^8?,8x^7
+0.7,What is the derivative of 4x?,4
+0.7,What is the derivative of 2x^4?,8x^3
+0.7,What is the derivative of 5x^2?,10x
 0.8,Derivative of sin(x)?,cos(x)
-0.8,Integrate 2x dx,x^2
 0.8,Derivative of cos(x)?,-sin(x)
+0.8,Derivative of tan(x)?,sec^2(x)
+0.8,Derivative of e^x?,e^x
+0.8,Derivative of ln(x)?,1/x
+0.8,Derivative of sin(2x)?,2cos(2x)
+0.8,Derivative of cos(3x)?,-3sin(3x)
+0.8,Derivative of e^(2x)?,2e^(2x)
+0.8,Derivative of ln(2x)?,1/x
+0.8,Derivative of sin(x)+cos(x)?,cos(x)-sin(x)
+0.8,What is the derivative of e^(3x)?,3e^(3x)
+0.8,Derivative of 2sin(x)?,2cos(x)
+0.8,Derivative of cos(2x)?,-2sin(2x)
+0.8,Derivative of 3ln(x)?,3/x
+0.8,Derivative of e^x+sin(x)?,e^x+cos(x)
+0.8,Derivative of tan(2x)?,2sec^2(2x)
+0.8,Derivative of 4cos(x)?,-4sin(x)
+0.8,Derivative of ln(x^2)?,2/x
+0.8,Derivative of 5e^x?,5e^x
+0.8,Derivative of sin(x)*2?,2cos(x)
 0.9,What is the derivative of ln(x)?,1/x
 0.9,What is the derivative of e^x?,e^x
-0.9,Integrate e^x dx,e^x
-1.0,What is lim(x->0) sin(x)/x?,1
-1.0,What is lim(x->∞) 1/x?,0
+0.9,What is lim(x->0) sin(x)/x?,1
+0.9,What is lim(x->inf) 1/x?,0
+0.9,What is lim(x->0) (1-cos(x))/x?,0
+0.9,Derivative of x*sin(x)?,sin(x)+x*cos(x)
+0.9,Derivative of x*e^x?,e^x+x*e^x
+0.9,Derivative of x*ln(x)?,ln(x)+1
+0.9,What is lim(x->inf) x/e^x?,0
+0.9,Derivative of sin(x)/x?,cos(x)/x-sin(x)/x^2
+0.9,What is lim(x->0) tan(x)/x?,1
+0.9,Derivative of e^x/x?,e^x/x-e^x/x^2
+0.9,What is lim(x->inf) 1/x^2?,0
+0.9,Derivative of x^2*sin(x)?,2x*sin(x)+x^2*cos(x)
+0.9,What is lim(x->0) x*sin(1/x)?,0
+0.9,Derivative of ln(x)/x?,1/x^2-ln(x)/x^2
+0.9,What is lim(x->1) (x^2-1)/(x-1)?,2
+0.9,Derivative of x^2*e^x?,2x*e^x+x^2*e^x
+0.9,What is lim(x->0) sin(3x)/x?,3
+0.9,Derivative of cos(x)/sin(x)?,-1/sin^2(x)
 1.0,Integral of 1/x dx,ln|x|
+1.0,What is lim(x->0) sin(x)/x?,1
+1.0,What is lim(x->inf) 1/x?,0
+1.0,What is the integral of e^x dx?,e^x
+1.0,What is the integral of cos(x) dx?,sin(x)
+1.0,What is the integral of sin(x) dx?,-cos(x)
+1.0,What is the integral of 2x dx?,x^2
+1.0,What is lim(x->0) (e^x-1)/x?,1
+1.0,What is the integral of 1 dx?,x
+1.0,What is lim(x->inf) (1+1/x)^x?,e
+1.0,What is the integral of x^2 dx?,x^3/3
+1.0,What is lim(x->0) x^2*sin(1/x)?,0
+1.0,What is the integral of sec^2(x) dx?,tan(x)
+1.0,What is lim(x->0) (1-cos(x))/x^2?,0.5
+1.0,What is the integral of 1/(1+x^2) dx?,arctan(x)
+1.0,What is lim(x->inf) n/e^n?,0
+1.0,What is the integral of e^(2x) dx?,0.5e^(2x)
+1.0,What is lim(x->0) sin(5x)/x?,5
+1.0,What is the integral of 3x^2 dx?,x^3
+1.0,What is lim(x->1) ln(x)/(x-1)?,1

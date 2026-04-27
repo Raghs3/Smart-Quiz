@@ -34,6 +34,8 @@ def _init_state():
         'baseline_answers': [],
         'baseline_questions': [],
         'bank': None,
+        'current_question': None,
+        'current_round': -1,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -224,7 +226,13 @@ def page_quiz():
 
     recent = st.session_state.recent_questions
     diff = st.session_state.difficulty
-    lvl, q, ans = qz.sample_question(bank, diff, recent)
+
+    if st.session_state.current_round != rnd:
+        lvl, q, ans = qz.sample_question(bank, diff, recent)
+        st.session_state.current_question = (lvl, q, ans)
+        st.session_state.current_round = rnd
+    else:
+        lvl, q, ans = st.session_state.current_question
 
     st.markdown(f'## {q}')
 
