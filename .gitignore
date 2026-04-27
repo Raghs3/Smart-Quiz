@@ -23,6 +23,12 @@ users.json
 # Large generated dataset (not the starter questions.csv)
 data/
 
+# Prototype / development artefacts
+main.py
+smart_quiz_model.npz
+smart_quiz_vectorized.ipynb
+docs/superpowers/
+
 # OS
 .DS_Store
 Thumbs.db
