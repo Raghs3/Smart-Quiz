@@ -32,6 +32,8 @@ class DeepNN:
         return self._acts[-1].ravel()
 
     def backward(self, y, lr=0.05):
+        if not self._acts:
+            raise RuntimeError("backward() called before forward(). Call forward() first.")
         target = np.array([[float(np.clip(y, 0.0, 1.0))]])
         delta = self._acts[-1] - target
         for i in reversed(range(len(self.weights))):

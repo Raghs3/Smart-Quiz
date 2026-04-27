@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import tempfile
-import pytest
 from nn import DeepNN, LAYER_SIZES
 
 
