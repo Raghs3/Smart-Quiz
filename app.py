@@ -62,12 +62,13 @@ def _load_user_model(username: str):
         return None, None, False
 
 
-def _save_user_model(username: str, nn, baseline_difficulty: float):
+def _save_user_model(username: str, nn, baseline_difficulty=None):
     path = _model_path(username)
     arrays = {f'W{i}': W for i, W in enumerate(nn.weights)}
     arrays.update({f'b{i}': b for i, b in enumerate(nn.biases)})
     arrays['layer_sizes'] = np.array(nn.layer_sizes)
-    arrays['baseline_difficulty'] = np.array(baseline_difficulty)
+    if baseline_difficulty is not None:
+        arrays['baseline_difficulty'] = np.array(baseline_difficulty)
     np.savez(path, **arrays)
 
 
@@ -103,7 +104,7 @@ def page_login():
                 nn = DeepNN(LAYER_SIZES)
                 with st.spinner('Running pretraining (first login)...'):
                     qz.pretrain(nn, bank)
-                _save_user_model(username, nn, 0.3)
+                _save_user_model(username, nn)
                 has_baseline = False
 
             st.session_state.user = username
