@@ -45,7 +45,7 @@ Results Dashboard (charts + summary)
 | `correct` | {0, 1} | Whether the current answer was correct |
 | `current_difficulty` | [0.0, 1.0] | Difficulty target before this round |
 | `rolling_accuracy` | [0.0, 1.0] | Mean correctness over last 5 rounds |
-| `streak` | [-1.0, 1.0] | Normalized consecutive correct (+) or wrong (−) streak |
+| `streak` | [-1.0, 1.0] | Consecutive streak capped at ±5, divided by 5. Positive = correct run, negative = wrong run |
 | `question_level` | [0.0, 1.0] | Actual difficulty level of the question served |
 
 ### Layers
@@ -192,7 +192,18 @@ mine/
 
 ---
 
-## 8. Out of Scope
+## 8. Migration from Existing Files
+
+The existing `main.py` and `smart_quiz_vectorized.ipynb` are replaced by the new modular structure. Their logic is preserved and distributed as follows:
+- `SimpleNN` class → `nn.py` (upgraded to 5→16→8→4→1)
+- Quiz loop logic → `quiz.py`
+- CSV loading, question sampling → `quiz.py`
+- Pretraining, save/load → `nn.py` + `quiz.py`
+- The notebook (`smart_quiz_vectorized.ipynb`) is kept as-is for reference/demo purposes but is not part of the running app.
+
+---
+
+## 9. Out of Scope
 
 - No online/cloud storage — everything is local files
 - No multiple choice questions — exact string matching only
