@@ -1,9 +1,6 @@
 # Claude Code internals
 .claude/
 
-# Claude Code plan and spec files
-docs/
-
 # Python bytecode
 __pycache__/
 *.py[cod]
@@ -23,8 +20,7 @@ models/
 # Auth data (generated at runtime)
 users.json
 
-# Dataset (large, generated externally)
-questions.csv
+# Large generated dataset (not the starter questions.csv)
 data/
 
 # OS
