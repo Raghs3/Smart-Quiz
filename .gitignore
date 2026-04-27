@@ -1,0 +1,32 @@
+# Claude Code internals
+.claude/
+
+# Claude Code plan and spec files
+docs/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Pytest cache
+.pytest_cache/
+
+# Per-user model weights (generated at runtime)
+models/
+
+# Auth data (generated at runtime)
+users.json
+
+# Dataset (large, generated externally)
+questions.csv
+data/
+
+# OS
+.DS_Store
+Thumbs.db
