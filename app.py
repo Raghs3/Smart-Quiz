@@ -1,10 +1,12 @@
 import os
 import random
-import numpy as np
-import streamlit as st
+import re
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
+import streamlit as st
 
 import auth
 import quiz as qz
@@ -15,8 +17,9 @@ TOTAL_ROUNDS = 20
 BASELINE_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(qz.DATASETS_DIR, exist_ok=True)
+os.makedirs(qz.UPLOADS_DIR, exist_ok=True)
 
-# ── Session state defaults ────────────────────────────────────────────────────
 
 def _init_state():
     defaults = {
@@ -34,24 +37,47 @@ def _init_state():
         'baseline_answers': [],
         'baseline_questions': [],
         'bank': None,
+        'selected_dataset_path': None,
+        'selected_dataset_name': None,
+        'selected_dataset_slug': None,
         'current_question': None,
         'current_round': -1,
     }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
 
 _init_state()
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _model_path(username: str) -> str:
+def _safe_model_part(value: str) -> str:
+    safe = re.sub(r'[^A-Za-z0-9_-]+', '_', value or '').strip('_').lower()
+    return safe or 'user'
+
+
+def _legacy_model_path(username: str) -> str:
     return os.path.join(MODELS_DIR, f'{username}.npz')
 
 
-def _load_user_model(username: str):
+def _model_path(username: str, dataset_path: str = None) -> str:
+    if dataset_path is None:
+        return _legacy_model_path(username)
+    return os.path.join(
+        MODELS_DIR,
+        f'{_safe_model_part(username)}__{qz.dataset_slug(dataset_path)}.npz',
+    )
+
+
+def _is_default_dataset(dataset_path: str) -> bool:
+    return qz.dataset_slug(dataset_path) == 'questions'
+
+
+def _load_user_model(username: str, dataset_path: str):
     """Load user NN and baseline result. Returns (nn, start_difficulty, has_baseline)."""
-    path = _model_path(username)
+    path = _model_path(username, dataset_path)
+    if not os.path.exists(path) and _is_default_dataset(dataset_path):
+        path = _legacy_model_path(username)
     if not os.path.exists(path):
         return None, None, False
     try:
@@ -65,7 +91,7 @@ def _load_user_model(username: str):
 
 
 def _save_user_model(username: str, nn, baseline_difficulty=None):
-    path = _model_path(username)
+    path = _model_path(username, st.session_state.selected_dataset_path)
     arrays = {f'W{i}': W for i, W in enumerate(nn.weights)}
     arrays.update({f'b{i}': b for i, b in enumerate(nn.biases)})
     arrays['layer_sizes'] = np.array(nn.layer_sizes)
@@ -76,8 +102,66 @@ def _save_user_model(username: str, nn, baseline_difficulty=None):
 
 def _get_bank():
     if st.session_state.bank is None:
-        st.session_state.bank = qz.load_questions()
+        st.session_state.bank = qz.load_questions(st.session_state.selected_dataset_path)
     return st.session_state.bank
+
+
+def _reset_quiz_state():
+    st.session_state.difficulty = 0.1
+    st.session_state.history = []
+    st.session_state.streak = 0
+    st.session_state.recent_questions = []
+    st.session_state.quiz_round = 0
+    st.session_state.rounds = TOTAL_ROUNDS
+    st.session_state.last_feedback = None
+    st.session_state.baseline_idx = 0
+    st.session_state.baseline_answers = []
+    st.session_state.baseline_questions = []
+    st.session_state.current_question = None
+    st.session_state.current_round = -1
+
+
+def _build_baseline_questions(bank: dict) -> list:
+    baseline_qs = []
+    for lvl in BASELINE_LEVELS:
+        lvl_pool = bank.get(lvl, [])
+        if lvl_pool:
+            baseline_qs.append((lvl, *random.choice(lvl_pool)))
+        else:
+            baseline_qs.append((lvl, f'What is {int(lvl * 10)}+0?', str(int(lvl * 10))))
+    return baseline_qs
+
+
+def _activate_dataset(dataset: dict):
+    path = dataset['path']
+    ok, msg = qz.validate_dataset(path)
+    if not ok:
+        st.error(msg)
+        return
+
+    _reset_quiz_state()
+    st.session_state.selected_dataset_path = path
+    st.session_state.selected_dataset_name = dataset['name']
+    st.session_state.selected_dataset_slug = dataset['slug']
+    bank = qz.load_questions(path)
+    st.session_state.bank = bank
+
+    nn, start_diff, has_baseline = _load_user_model(st.session_state.user, path)
+    if nn is None:
+        nn = DeepNN(LAYER_SIZES)
+        with st.spinner('Running pretraining for this dataset...'):
+            qz.pretrain(nn, bank)
+        _save_user_model(st.session_state.user, nn)
+        has_baseline = False
+
+    st.session_state.nn = nn
+    if has_baseline:
+        st.session_state.difficulty = start_diff
+        st.session_state.phase = 'quiz'
+    else:
+        st.session_state.baseline_questions = _build_baseline_questions(bank)
+        st.session_state.phase = 'baseline'
+    st.rerun()
 
 
 def _logout():
@@ -85,7 +169,6 @@ def _logout():
         del st.session_state[key]
     _init_state()
 
-# ── Page: Login / Register ────────────────────────────────────────────────────
 
 def page_login():
     st.title('Smart Quiz')
@@ -100,33 +183,8 @@ def page_login():
 
     if submitted_login:
         if auth.login(username, password):
-            bank = _get_bank()
-            nn, start_diff, has_baseline = _load_user_model(username)
-            if nn is None:
-                nn = DeepNN(LAYER_SIZES)
-                with st.spinner('Running pretraining (first login)...'):
-                    qz.pretrain(nn, bank)
-                _save_user_model(username, nn)
-                has_baseline = False
-
             st.session_state.user = username
-            st.session_state.nn = nn
-
-            if has_baseline:
-                st.session_state.difficulty = start_diff
-                st.session_state.phase = 'quiz'
-            else:
-                baseline_qs = []
-                for lvl in BASELINE_LEVELS:
-                    lvl_pool = bank.get(lvl, [])
-                    if lvl_pool:
-                        baseline_qs.append((lvl, *random.choice(lvl_pool)))
-                    else:
-                        baseline_qs.append((lvl, f'What is {int(lvl*10)}+0?', str(int(lvl*10))))
-                st.session_state.baseline_questions = baseline_qs
-                st.session_state.baseline_idx = 0
-                st.session_state.baseline_answers = []
-                st.session_state.phase = 'baseline'
+            st.session_state.phase = 'dataset_select'
             st.rerun()
         else:
             st.error('Incorrect username or password.')
@@ -138,7 +196,41 @@ def page_login():
         else:
             st.error(msg)
 
-# ── Page: Baseline Test ───────────────────────────────────────────────────────
+
+def page_dataset_select():
+    if not st.session_state.user:
+        st.session_state.phase = 'login'
+        st.rerun()
+
+    st.title('Choose Dataset')
+    st.caption('Select a question bank before starting your baseline or quiz.')
+
+    uploaded = st.file_uploader('Upload CSV dataset', type=['csv'])
+    if uploaded is not None and st.button('Save Uploaded Dataset'):
+        saved_path, error = qz.save_uploaded_dataset(uploaded.name, uploaded.getvalue())
+        if error:
+            st.error(error)
+        else:
+            st.success(f'Saved {os.path.basename(saved_path)}')
+
+    datasets = qz.list_datasets()
+    if not datasets:
+        st.warning('No datasets found. Upload a CSV with level, question, and answer columns.')
+        return
+
+    selected = st.selectbox(
+        'Available datasets',
+        datasets,
+        format_func=lambda d: f"{d['name']} ({d['slug']})",
+    )
+
+    col1, col2 = st.columns(2)
+    if col1.button('Continue'):
+        _activate_dataset(selected)
+    if col2.button('Logout'):
+        _logout()
+        st.rerun()
+
 
 def page_baseline():
     idx = st.session_state.baseline_idx
@@ -146,12 +238,12 @@ def page_baseline():
     total = len(questions)
 
     st.title('Baseline Assessment')
-    st.caption('GMAT-style — answer all questions to set your starting difficulty.')
+    st.caption('GMAT-style - answer all questions to set your starting difficulty.')
     st.progress(idx / total, text=f'Question {idx + 1} of {total}')
 
     if idx >= total:
         score = qz.baseline_score(
-            [(lvl, c) for lvl, c in st.session_state.baseline_answers]
+            [(lvl, correct) for lvl, correct in st.session_state.baseline_answers]
         )
         _save_user_model(st.session_state.user, st.session_state.nn, score)
         st.session_state.difficulty = score
@@ -161,8 +253,8 @@ def page_baseline():
             st.rerun()
         return
 
-    lvl, q, ans = questions[idx]
-    st.markdown(f'### {q}')
+    lvl, question, answer = questions[idx]
+    st.markdown(f'### {question}')
     st.caption(f'Difficulty level: {lvl:.1f}')
 
     with st.form(f'baseline_form_{idx}'):
@@ -170,16 +262,15 @@ def page_baseline():
         submitted = st.form_submit_button('Submit')
 
     if submitted:
-        correct = qz.normalize(user_ans) == qz.normalize(ans)
+        correct = qz.normalize(user_ans) == qz.normalize(answer)
         st.session_state.baseline_answers.append((lvl, correct))
         st.session_state.baseline_idx += 1
         if correct:
             st.success('Correct!')
         else:
-            st.error(f'Incorrect. Answer: {ans}')
+            st.error(f'Incorrect. Answer: {answer}')
         st.rerun()
 
-# ── Page: Adaptive Quiz ───────────────────────────────────────────────────────
 
 def page_quiz():
     user = st.session_state.user
@@ -188,6 +279,7 @@ def page_quiz():
 
     with st.sidebar:
         st.header(f'Player: {user}')
+        st.caption(f"Dataset: {st.session_state.selected_dataset_name}")
         st.metric('Difficulty', f"{st.session_state.difficulty:.2f}")
         history = st.session_state.history
         if history:
@@ -197,9 +289,15 @@ def page_quiz():
         streak_label = f'+{streak}' if streak > 0 else str(streak)
         st.metric('Streak', streak_label)
         st.session_state.rounds = st.slider(
-            'Total Rounds', min_value=5, max_value=50,
-            value=st.session_state.rounds, step=5
+            'Total Rounds',
+            min_value=5,
+            max_value=50,
+            value=st.session_state.rounds,
+            step=5,
         )
+        if st.button('Change Dataset'):
+            st.session_state.phase = 'dataset_select'
+            st.rerun()
         if st.button('End Quiz'):
             _save_user_model(user, nn, st.session_state.difficulty)
             st.session_state.phase = 'results'
@@ -217,33 +315,36 @@ def page_quiz():
     st.title('Adaptive Quiz')
     st.caption(f'Round {rnd + 1} / {rounds}')
 
-    fb = st.session_state.last_feedback
-    if fb:
-        if fb['correct']:
-            st.success(f"Correct! Difficulty → {fb['new_diff']:.2f}")
+    feedback = st.session_state.last_feedback
+    if feedback:
+        if feedback['correct']:
+            st.success(f"Correct! Difficulty -> {feedback['new_diff']:.2f}")
         else:
-            st.error(f"Incorrect. Answer was: {fb['answer']}. Difficulty → {fb['new_diff']:.2f}")
+            st.error(
+                f"Incorrect. Answer was: {feedback['answer']}. "
+                f"Difficulty -> {feedback['new_diff']:.2f}"
+            )
 
     recent = st.session_state.recent_questions
     diff = st.session_state.difficulty
 
     if st.session_state.current_round != rnd:
-        lvl, q, ans = qz.sample_question(bank, diff, recent)
-        st.session_state.current_question = (lvl, q, ans)
+        lvl, question, answer = qz.sample_question(bank, diff, recent)
+        st.session_state.current_question = (lvl, question, answer)
         st.session_state.current_round = rnd
     else:
-        lvl, q, ans = st.session_state.current_question
+        lvl, question, answer = st.session_state.current_question
 
-    st.markdown(f'## {q}')
+    st.markdown(f'## {question}')
 
     with st.form(f'quiz_form_{rnd}'):
         user_ans = st.text_input('Your answer', key=f'ans_{rnd}')
         submitted = st.form_submit_button('Submit Answer')
 
     if submitted:
-        correct = qz.normalize(user_ans) == qz.normalize(ans)
+        correct = qz.normalize(user_ans) == qz.normalize(answer)
 
-        recent.append(q)
+        recent.append(question)
         if len(recent) > qz.MAX_RECENT:
             recent.pop(0)
 
@@ -263,7 +364,7 @@ def page_quiz():
 
         st.session_state.history.append({
             'round': rnd + 1,
-            'question': q,
+            'question': question,
             'question_level': lvl,
             'correct': correct,
             'predicted_diff': predicted,
@@ -273,16 +374,16 @@ def page_quiz():
 
         st.session_state.last_feedback = {
             'correct': correct,
-            'answer': ans,
+            'answer': answer,
             'new_diff': new_diff,
         }
         st.session_state.quiz_round += 1
         st.rerun()
 
-# ── Page: Results Dashboard ───────────────────────────────────────────────────
 
 def page_results():
     st.title('Quiz Results')
+    st.caption(f"Dataset: {st.session_state.selected_dataset_name}")
     history = st.session_state.history
 
     if not history:
@@ -340,7 +441,7 @@ def page_results():
     axes[1, 0].grid(alpha=0.3)
 
     unique_lvls, counts = np.unique(q_levels, return_counts=True)
-    axes[1, 1].bar([str(l) for l in unique_lvls], counts, color='purple', alpha=0.8)
+    axes[1, 1].bar([str(lvl) for lvl in unique_lvls], counts, color='purple', alpha=0.8)
     axes[1, 1].set_title('Question Level Usage')
     axes[1, 1].set_xlabel('Level')
     axes[1, 1].set_ylabel('Count')
@@ -350,23 +451,28 @@ def page_results():
     st.pyplot(fig)
     plt.close(fig)
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     if col1.button('Start New Quiz'):
         st.session_state.history = []
         st.session_state.quiz_round = 0
         st.session_state.streak = 0
         st.session_state.recent_questions = []
         st.session_state.last_feedback = None
+        st.session_state.current_question = None
+        st.session_state.current_round = -1
         st.session_state.phase = 'quiz'
         st.rerun()
-    if col2.button('Logout'):
+    if col2.button('Change Dataset'):
+        st.session_state.phase = 'dataset_select'
+        st.rerun()
+    if col3.button('Logout'):
         _logout()
         st.rerun()
 
-# ── Router ────────────────────────────────────────────────────────────────────
 
 PAGES = {
     'login': page_login,
+    'dataset_select': page_dataset_select,
     'baseline': page_baseline,
     'quiz': page_quiz,
     'results': page_results,

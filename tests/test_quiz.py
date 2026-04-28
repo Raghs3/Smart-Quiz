@@ -87,6 +87,71 @@ def test_load_questions_fallback(tmp_path):
     assert len(bank[0.1]) > 0
 
 
+def test_load_questions_invalid_file_fallback(tmp_path):
+    path = tmp_path / 'bad.csv'
+    path.write_text('difficulty,prompt,result\n0.1,Q,A\n', encoding='utf-8')
+    bank = quiz.load_questions(str(path))
+    assert bank == quiz.FALLBACK
+
+
+def test_validate_dataset_success(tmp_path):
+    path = tmp_path / 'good.csv'
+    path.write_text('level,question,answer\n0.1,What is 1+1?,2\n', encoding='utf-8')
+    ok, msg = quiz.validate_dataset(str(path))
+    assert ok is True
+    assert msg == ''
+
+
+def test_validate_dataset_missing_columns(tmp_path):
+    path = tmp_path / 'bad.csv'
+    path.write_text('level,question\n0.1,What is 1+1?\n', encoding='utf-8')
+    ok, msg = quiz.validate_dataset(str(path))
+    assert ok is False
+    assert 'answer' in msg
+
+
+def test_list_datasets_includes_root_and_uploads(tmp_path):
+    root = tmp_path / 'datasets'
+    uploads = root / 'uploads'
+    uploads.mkdir(parents=True)
+    (root / 'questions.csv').write_text('level,question,answer\n0.1,Q,A\n', encoding='utf-8')
+    (uploads / 'custom.csv').write_text('level,question,answer\n0.1,Q,A\n', encoding='utf-8')
+
+    datasets = quiz.list_datasets(str(root))
+    slugs = {d['slug'] for d in datasets}
+
+    assert slugs == {'questions', 'uploads__custom'}
+
+
+def test_save_uploaded_dataset_validates_before_saving(tmp_path):
+    path, error = quiz.save_uploaded_dataset(
+        'bad.csv',
+        b'level,question\n0.1,Q\n',
+        str(tmp_path),
+    )
+    assert path is None
+    assert 'answer' in error
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_save_uploaded_dataset_success(tmp_path):
+    path, error = quiz.save_uploaded_dataset(
+        'My Dataset.csv',
+        b'level,question,answer\n0.1,Q,A\n',
+        str(tmp_path),
+    )
+    assert error == ''
+    assert path.endswith('My_Dataset.csv')
+    assert (tmp_path / 'My_Dataset.csv').exists()
+
+
+def test_dataset_slug_uses_relative_upload_path(tmp_path):
+    root = tmp_path / 'datasets'
+    path = root / 'uploads' / 'My Dataset.csv'
+    slug = quiz.dataset_slug(str(path), str(root))
+    assert slug == 'uploads__my_dataset'
+
+
 def test_sample_question_returns_tuple():
     bank = quiz.FALLBACK
     lvl, q, a = quiz.sample_question(bank, 0.5, [])

@@ -2,7 +2,7 @@
 One-time script: converts DeepMind Mathematics Dataset text files to questions.csv.
 
 Usage:
-    python prepare_data.py <deepmind_folder> [--max-per-level 500] [--out questions.csv]
+    python prepare_data.py <deepmind_folder> [--max-per-level 500] [--out datasets/questions.csv]
 
 <deepmind_folder> must contain train-easy/, train-medium/, train-hard/ subdirs.
 Each .txt file alternates question/answer lines:
@@ -46,7 +46,7 @@ def main():
     parser.add_argument('folder', help='Path to DeepMind generated dataset folder')
     parser.add_argument('--max-per-level', type=int, default=500,
                         help='Max questions per difficulty level (default 500)')
-    parser.add_argument('--out', default='questions.csv', help='Output CSV path')
+    parser.add_argument('--out', default='datasets/questions.csv', help='Output CSV path')
     args = parser.parse_args()
 
     if not os.path.isdir(args.folder):

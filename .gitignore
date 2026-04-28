@@ -13,6 +13,10 @@ env/
 
 # Pytest cache
 .pytest_cache/
+.pytest_tmp/
+.pytest_local_tmp/
+pytest-run-temp/
+test-tmp/
 
 # Per-user model weights (generated at runtime)
 models/
@@ -22,6 +26,10 @@ users.json
 
 # Large generated dataset (not the starter questions.csv)
 data/
+
+# User-uploaded datasets created at runtime
+datasets/uploads/*.csv
+!datasets/uploads/.gitkeep
 
 # Prototype / development artefacts
 main.py

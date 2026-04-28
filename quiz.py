@@ -1,9 +1,14 @@
 import csv
+import io
 import os
 import random
+import re
 import numpy as np
 
-QUESTIONS_CSV = 'questions.csv'
+DATASETS_DIR = 'datasets'
+UPLOADS_DIR = os.path.join(DATASETS_DIR, 'uploads')
+QUESTIONS_CSV = os.path.join(DATASETS_DIR, 'questions.csv')
+REQUIRED_COLUMNS = {'level', 'question', 'answer'}
 LEVEL_STEP = 0.1
 MAX_RECENT = 10
 DIFF_STEP = 0.08
@@ -22,23 +27,131 @@ FALLBACK = {
 }
 
 
+def _read_bank(reader) -> dict:
+    bank = {}
+    for row in reader:
+        try:
+            lvl = round(float(np.clip(float(row['level']), 0.1, 1.0)), 1)
+        except (ValueError, KeyError, TypeError):
+            continue
+        q = (row.get('question') or '').strip()
+        a = (row.get('answer') or '').strip()
+        if q and a:
+            bank.setdefault(lvl, []).append((q, a))
+    return bank
+
+
 def load_questions(path=None) -> dict:
     """Return dict: level (float) -> list of (question, answer) tuples."""
     p = path or QUESTIONS_CSV
     if not os.path.exists(p):
         return FALLBACK
-    bank = {}
-    with open(p, newline='', encoding='utf-8') as f:
-        for row in csv.DictReader(f):
-            try:
-                lvl = round(float(np.clip(float(row['level']), 0.1, 1.0)), 1)
-            except (ValueError, KeyError, TypeError):
+    try:
+        with open(p, newline='', encoding='utf-8') as f:
+            return _read_bank(csv.DictReader(f)) or FALLBACK
+    except (OSError, UnicodeDecodeError):
+        return FALLBACK
+
+
+def dataset_slug(path: str, datasets_dir: str = DATASETS_DIR) -> str:
+    """Return a filesystem-safe slug for a dataset path."""
+    dataset_abs = os.path.abspath(path)
+    root_abs = os.path.abspath(datasets_dir)
+    try:
+        label = os.path.splitext(os.path.relpath(dataset_abs, root_abs))[0]
+    except ValueError:
+        label = os.path.splitext(os.path.basename(path))[0]
+    label = label.replace(os.sep, '__')
+    if os.altsep:
+        label = label.replace(os.altsep, '__')
+    slug = re.sub(r'[^A-Za-z0-9_-]+', '_', label).strip('_').lower()
+    return slug or 'dataset'
+
+
+def list_datasets(datasets_dir: str = DATASETS_DIR) -> list:
+    """Return available dataset CSVs from datasets/ and datasets/uploads/."""
+    roots = [datasets_dir, os.path.join(datasets_dir, 'uploads')]
+    datasets = []
+    seen = set()
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for fname in sorted(os.listdir(root)):
+            if not fname.lower().endswith('.csv'):
                 continue
-            q = (row.get('question') or '').strip()
-            a = (row.get('answer') or '').strip()
-            if q and a:
-                bank.setdefault(lvl, []).append((q, a))
-    return bank or FALLBACK
+            path = os.path.join(root, fname)
+            key = os.path.abspath(path)
+            if key in seen or not os.path.isfile(path):
+                continue
+            seen.add(key)
+            datasets.append({
+                'name': fname,
+                'path': path,
+                'slug': dataset_slug(path, datasets_dir),
+            })
+    return datasets
+
+
+def _validate_reader(reader) -> tuple:
+    fieldnames = set(reader.fieldnames or [])
+    missing = sorted(REQUIRED_COLUMNS - fieldnames)
+    if missing:
+        return False, f"Missing required column(s): {', '.join(missing)}"
+    if not _read_bank(reader):
+        return False, 'Dataset has no valid question rows.'
+    return True, ''
+
+
+def validate_dataset(path: str) -> tuple:
+    """Validate that a CSV file has the columns and rows needed by the quiz."""
+    try:
+        with open(path, newline='', encoding='utf-8') as f:
+            return _validate_reader(csv.DictReader(f))
+    except OSError as exc:
+        return False, str(exc)
+    except UnicodeDecodeError:
+        return False, 'Dataset must be UTF-8 encoded.'
+
+
+def validate_dataset_bytes(data: bytes) -> tuple:
+    """Validate an uploaded dataset before saving it."""
+    try:
+        text = data.decode('utf-8')
+    except UnicodeDecodeError:
+        return False, 'Dataset must be UTF-8 encoded.'
+    return _validate_reader(csv.DictReader(io.StringIO(text)))
+
+
+def safe_dataset_filename(filename: str) -> str:
+    """Return a safe CSV filename for an uploaded dataset."""
+    base = os.path.basename(filename or '').strip()
+    name, ext = os.path.splitext(base)
+    name = re.sub(r'[^A-Za-z0-9_-]+', '_', name).strip('_')
+    if not name:
+        name = 'uploaded_dataset'
+    return f'{name}{ext.lower() or ".csv"}'
+
+
+def save_uploaded_dataset(filename: str, data: bytes,
+                          uploads_dir: str = UPLOADS_DIR) -> tuple:
+    """Validate and save an uploaded CSV. Returns (path, error_message)."""
+    safe_name = safe_dataset_filename(filename)
+    if not safe_name.lower().endswith('.csv'):
+        return None, 'Dataset upload must be a CSV file.'
+    ok, msg = validate_dataset_bytes(data)
+    if not ok:
+        return None, msg
+
+    os.makedirs(uploads_dir, exist_ok=True)
+    stem, ext = os.path.splitext(safe_name)
+    path = os.path.join(uploads_dir, safe_name)
+    counter = 2
+    while os.path.exists(path):
+        path = os.path.join(uploads_dir, f'{stem}_{counter}{ext}')
+        counter += 1
+    with open(path, 'wb') as f:
+        f.write(data)
+    return path, ''
 
 
 def sample_question(bank: dict, difficulty: float, recent: list) -> tuple:
